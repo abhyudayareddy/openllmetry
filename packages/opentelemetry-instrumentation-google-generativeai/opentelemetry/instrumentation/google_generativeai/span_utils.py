@@ -768,6 +768,7 @@ def set_model_response_attributes(
     if not span.is_recording():
         return
     _set_span_attribute(span, GenAIAttributes.GEN_AI_RESPONSE_MODEL, llm_model)
+    um = None
     if hasattr(response, "usage_metadata"):
         um = response.usage_metadata
         _set_span_attribute(
@@ -785,8 +786,16 @@ def set_model_response_attributes(
             GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS,
             um.prompt_token_count,
         )
-    if token_histogram and hasattr(response, "usage_metadata"):
-        um = response.usage_metadata
+
+        cached_content_token_count = getattr(um, "cached_content_token_count", None)
+        if cached_content_token_count is not None:
+            _set_span_attribute(
+                span,
+                GenAIAttributes.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+                cached_content_token_count,
+            )
+
+    if token_histogram and um is not None:
         token_histogram.record(
             um.prompt_token_count,
             attributes={
@@ -801,6 +810,8 @@ def set_model_response_attributes(
             um.candidates_token_count,
             attributes={
                 GenAIAttributes.GEN_AI_PROVIDER_NAME: _GCP_GEN_AI,
+                GenAIAttributes.GEN_AI_OPERATION_NAME: _GEN_CONTENT,
+                GenAIAttributes.GEN_AI_REQUEST_MODEL: llm_model,
                 GenAIAttributes.GEN_AI_TOKEN_TYPE: "output",
                 GenAIAttributes.GEN_AI_RESPONSE_MODEL: llm_model,
             },
