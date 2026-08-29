@@ -768,6 +768,11 @@ def set_model_response_attributes(
     if not span.is_recording():
         return
     _set_span_attribute(span, GenAIAttributes.GEN_AI_RESPONSE_MODEL, llm_model)
+
+    rid = getattr(response, "response_id", None)
+    if rid:
+        _set_span_attribute(span, GenAIAttributes.GEN_AI_RESPONSE_ID, rid)
+
     um = None
     if hasattr(response, "usage_metadata"):
         um = response.usage_metadata
